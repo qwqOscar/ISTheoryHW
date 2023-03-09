@@ -54,9 +54,12 @@ struct ipv6_header
         u_int32_t traffic_class : 8, 
         u_int32_t flow_label : 20;
 #else
-    u_int32_t flow_label : 20,
-         traffic_class : 8, //流量分类（Traffic Class）
-         version : 4;
+    u_int32_t flow_label : 4,
+         version : 4, //流量分类（Traffic Class）
+         traffic_class : 24;
+    
+
+    
 #endif
 
     uint16_t payload_len;
@@ -268,7 +271,7 @@ void my_protocol_packet_callback(u_char* argument, const struct pcap_pkthdr* pac
     u_int  ip_header_length;    /*长度*/
 
     //解析IPv4协议头
-    if (ethernet_type == 0x0800) {
+    if (ethernet_type ==0x0800) {
         printf("上层是IPV4协议，继续解析\n");
         struct ipv4_header* ip_protocol;   /*ip协议变量*/
        
@@ -293,7 +296,6 @@ void my_protocol_packet_callback(u_char* argument, const struct pcap_pkthdr* pac
         printf("目的IP:\t%s\n", inet_ntoa(ip_protocol->ip_destination_address));/*获得目的ip地址*/
         printf("协议号:\t%d\n", ip_protocol->ip_protocol);         /*获得协议类型*/
         
-
         if (ip_protocol->ip_protocol != 17) {
             printf("上层不是UDP停止解析\n");
             return;
@@ -308,13 +310,17 @@ void my_protocol_packet_callback(u_char* argument, const struct pcap_pkthdr* pac
         char src_addr[40], dst_addr[40];
         ipv6_hdr = (struct ipv6_header*)(packet_content + ether_header_length);
 
+
+        printf("\n##########    网络层（IP协议）    ########### \n");
+        //printf("IP版本:\t\tIPv%d\n", ipv6_hdr->version);
+        
         inet_ntop(AF_INET6, &(ipv6_hdr->src_addr), src_addr, 40);
         inet_ntop(AF_INET6, &(ipv6_hdr->dst_addr), dst_addr, 40);
-        printf("Source Address: %s\n", src_addr);
-        printf("Destination Address: %s\n", dst_addr);
-        printf("Next Header: %u\n", ipv6_hdr->next_header);
-        printf("Hop Limit: %u\n", ipv6_hdr->hop_limit);
-        printf("Payload Length: %u\n", ntohs(ipv6_hdr->payload_len));
+        printf("源ip地址: %s\n", src_addr);
+        printf("目标ip地址: %s\n", dst_addr);
+        printf("下一个报文头: %u\n", ipv6_hdr->next_header);
+        printf("跳数限制: %u\n", ipv6_hdr->hop_limit);
+        printf("有效载荷长度: %u\n", ntohs(ipv6_hdr->payload_len));
 
         if (ipv6_hdr->next_header != 17) {
             printf("上层不是UDP停止解析\n");
@@ -362,7 +368,7 @@ void my_protocol_packet_callback(u_char* argument, const struct pcap_pkthdr* pac
 
 
     l2tp_header* l2tp;
-    int headerlength = 6;
+    int l2tp_header_length = 6;
     u_int16_t l2tp_length;
     u_int16_t tunnel_id;
     u_int16_t session_id;
@@ -376,8 +382,8 @@ void my_protocol_packet_callback(u_char* argument, const struct pcap_pkthdr* pac
     printf("L2TP packet received:\n");
     printf("  版本号: %d\n", l2tp->ver);
     bool type = l2tp->type;
-    string stype = l2tp->type ? "控制信息" : "数据信息";
-    printf("类型: %s\n", stype);
+    if (type) printf("类型: 控制信息\n");
+    else printf("类型: 数据信息\n");
 
     bool lengthin = l2tp->lengthin; //长度域是否存在 
     bool sequence = l2tp->sequence; //序列域是否存在
@@ -385,13 +391,13 @@ void my_protocol_packet_callback(u_char* argument, const struct pcap_pkthdr* pac
     if (lengthin) {
         l2tp_length = ntohs(l2tp->length);
         printf("  Length: %d\n", length);
-        headerlength += 2;
+        l2tp_header_length += 2;
         tunnel_id = ntohs(l2tp->tunnel_id);
         session_id = ntohs(l2tp->session_id);
         printf("  Tunnel ID: %d\n", tunnel_id);
         printf("  Session ID: %d\n", session_id);
         if (sequence) {
-            headerlength += 4;
+            l2tp_header_length += 4;
             Ns = ntohs(l2tp->ns);
             Nr = ntohs(l2tp->nr);
             printf("  NS: %d\n", Ns);
@@ -399,16 +405,16 @@ void my_protocol_packet_callback(u_char* argument, const struct pcap_pkthdr* pac
             if (l2tp_offset) {
                 offset_size = ntohs(l2tp->offset_size);
                 printf("Offset size: %d\n", offset_size);
-                headerlength += 2;
-                headerlength += offset_size;
+                l2tp_header_length += 2;
+                l2tp_header_length += offset_size;
             }
         }
         else {
             if (l2tp_offset) {
                 offset_size = ntohs(l2tp->ns);
                 printf("Offset size: %d\n", offset_size);
-                headerlength += 2;
-                headerlength += offset_size;
+                l2tp_header_length += 2;
+                l2tp_header_length += offset_size;
             }
         }
     }
@@ -418,7 +424,7 @@ void my_protocol_packet_callback(u_char* argument, const struct pcap_pkthdr* pac
         printf("  Tunnel ID: %d\n", tunnel_id);
         printf("  Session ID: %d\n", session_id);
         if (sequence) {
-            headerlength += 4;
+            l2tp_header_length += 4;
             Ns = ntohs(l2tp->session_id);
             Nr = ntohs(l2tp->ns);
             printf("  NS: %d\n", Ns);
@@ -426,20 +432,20 @@ void my_protocol_packet_callback(u_char* argument, const struct pcap_pkthdr* pac
             if (l2tp_offset) {
                 offset_size = ntohs(l2tp->nr);
                 printf("Offset size: %d\n", offset_size);
-                headerlength += 2;
-                headerlength += offset_size;
+                l2tp_header_length += 2;
+                l2tp_header_length += offset_size;
             }
         }
         else {
             if (l2tp_offset) {
                 offset_size = ntohs(l2tp->session_id);
                 printf("Offset size: %d\n", offset_size);
-                headerlength += 2;
-                headerlength += offset_size;
+                l2tp_header_length += 2;
+                l2tp_header_length += offset_size;
             }
         }
     }
-    printf("l2tp头总长度: %d\n", headerlength);
+    printf("l2tp头总长度: %d\n", l2tp_header_length);
 
     if (l2tp->type) {
         //如果是控制信息，紧随在l2tp头之后的就应该是message type 的avp
@@ -450,6 +456,87 @@ void my_protocol_packet_callback(u_char* argument, const struct pcap_pkthdr* pac
     else {
         //如果是数据信息则应该检查剩余信息是否以ppp协议开头
         printf("这是一个数据包/n");
+
+
+        //解析ppp协议
+        ppp_header* ppp;
+
+        ppp = (ppp_header*)(packet_content+ether_header_length+ip_header_length+udp_header_length+ l2tp_header_length);
+
+        if (!(ppp->flag == 0x7e && ppp->address == 0xff && ppp->control == 0x3c)) {
+            printf("不是ppp协议，停止解析");
+            return;
+        }
+        else {
+            printf("确实是ppp协议,继续解析");
+            const int ppp_header_length = 5;
+            u_int16_t procotol = ntohs(ppp->procotol);
+            if (procotol != 0x0021) {
+                printf("ppp协议中不是ip协议，停止解析");
+                return;
+            }
+            else {
+                printf("ppp协议包装了ip协议,继续解析");
+
+                u_int  ip_header_length2;    /*长度*/
+
+                //解析IPv4协议头
+                if (ethernet_type == 0x0800) {
+                    printf("上层是IPV4协议，继续解析\n");
+                    struct ipv4_header* ip_protocol;   /*ip协议变量*/
+
+                    u_int  offset;                   /*片偏移*/
+                    u_char  tos;                     /*服务类型*/
+                    u_int16_t checksum;    /*首部检验和*/
+                    ip_protocol = (struct ipv4_header*)(packet_content + ether_header_length+ip_header_length+udp_header_length+l2tp_header_length+ppp_header_length); /*获得ip数据包的内容去掉以太头部*/
+                    checksum = ntohs(ip_protocol->ip_checksum);      /*获得校验和*/
+                    ip_header_length2 = ip_protocol->ip_header_length * 4; /*获得长度*/
+                    tos = ip_protocol->ip_tos;    /*获得tos*/
+                    offset = ntohs(ip_protocol->ip_off);   /*获得偏移量*/
+                    printf("\n##########    网络层（IP协议）    ########### \n");
+                    printf("IP版本:\t\tIPv%d\n", ip_protocol->ip_version);
+                    printf("IP协议首部长度:\t%d\n", ip_header_length);
+                    printf("服务类型:\t%d\n", tos);
+                    printf("总长度:\t\t%d\n", ntohs(ip_protocol->ip_length));/*获得总长度*/
+                    printf("标识:\t\t%d\n", ntohs(ip_protocol->ip_id));  /*获得标识*/
+                    printf("片偏移:\t\t%d\n", (offset & 0x1fff) * 8);    /**/
+                    printf("生存时间:\t%d\n", ip_protocol->ip_ttl);     /*获得ttl*/
+                    printf("首部检验和:\t%d\n", checksum);
+                    printf("源IP:\t%s\n", inet_ntoa(ip_protocol->ip_source_address));          /*获得源ip地址*/
+                    printf("目的IP:\t%s\n", inet_ntoa(ip_protocol->ip_destination_address));/*获得目的ip地址*/
+                    printf("协议号:\t%d\n", ip_protocol->ip_protocol);         /*获得协议类型*/
+
+                    
+                }
+
+                //解析IPv6协议头
+                else if (ethernet_type == 0x86DD) {
+                    printf("上层是IPV6协议，继续解析\n");
+                    struct ipv6_header* ipv6_hdr;   /*ip协议变量*/
+                    char src_addr[40], dst_addr[40];
+                    ipv6_hdr = (struct ipv6_header*)(packet_content + ether_header_length + ip_header_length + udp_header_length + l2tp_header_length + ppp_header_length);
+
+
+                    printf("\n##########    网络层（IP协议）    ########### \n");
+                    //printf("IP版本:\t\tIPv%d\n", ipv6_hdr->version);
+
+                    inet_ntop(AF_INET6, &(ipv6_hdr->src_addr), src_addr, 40);
+                    inet_ntop(AF_INET6, &(ipv6_hdr->dst_addr), dst_addr, 40);
+                    printf("源ip地址: %s\n", src_addr);
+                    printf("目标ip地址: %s\n", dst_addr);
+                    printf("下一个报文头: %u\n", ipv6_hdr->next_header);
+                    printf("跳数限制: %u\n", ipv6_hdr->hop_limit);
+                    printf("有效载荷长度: %u\n", ntohs(ipv6_hdr->payload_len));
+
+                    
+                    ip_header_length2 = 40;
+
+                }
+
+                printf("输出l2tp数据\n");
+
+            }
+        }
     }
 }
 

@@ -87,9 +87,9 @@ void my_packet_handler(
     printf("UDP header length in bytes: %d\n", udp_header_length);
 	
 
-    unsigned short udp_src_port = *(unsigned short*)udp_header;
-    unsigned short udp_dst_port = *(unsigned short*)(udp_header+2);
-	if((*(unsigned short *)udp_header) == 1701 || *(unsigned short *)(udp_header + 2) == 1701)
+    unsigned short udp_src_port = (((*(udp_header)) & 0xFF) << 8) | (((*(udp_header + 1)) & 0xFF));
+    unsigned short udp_dst_port = (((*(udp_header + 2)) & 0xFF) << 8) | (((*(udp_header + 3)) & 0xFF));
+	if(udp_src_port == 1701 || udp_dst_port == 1701)
 		printf("  port == 1701!\n");
 	else{
         printf("  udp_src_port==%d", (int)(udp_src_port));

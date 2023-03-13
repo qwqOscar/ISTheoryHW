@@ -31,11 +31,11 @@ void my_packet_handler(
     struct ether_header *eth_header;
     eth_header = (struct ether_header *) packet;
     if (ntohs(eth_header->ether_type) != ETHERTYPE_IP) {
-        printf("Not an IP packet. Skipping...\n\n");
+        printf("\nNot an IP packet. Skipping...\n\n");
         return;
     }
 
-    printf("Total packet available: %d bytes\n", header->caplen);
+    printf("\nTotal packet available: %d bytes\n", header->caplen);
     printf("Expected packet size: %d bytes\n", header->len);
 
     const u_char *ip_header;
@@ -86,10 +86,15 @@ void my_packet_handler(
     udp_header_length = (((*(udp_header + 4)) & 0xFF) << 8) | (((*(udp_header + 5)) & 0xFF));
     printf("UDP header length in bytes: %d\n", udp_header_length);
 	
+
+    unsigned short udp_src_port = *(unsigned short*)udp_header;
+    unsigned short udp_dst_port = *(unsigned short*)(udp_header+2);
 	if((*(unsigned short *)udp_header) == 1701 || *(unsigned short *)(udp_header + 2) == 1701)
-		printf("port == 1701!\n");
-	else
-		return;
+		printf("  port == 1701!\n");
+	else{
+        printf("  udp_src_port==%d", int(udp_src_port));
+        printf("  udp_dst_port==%d\n", int(udp_dst_port));
+    }
 	
     // l2tp
     l2tp_header = packet + ethernet_header_length + ip_header_length + udp_header_length;

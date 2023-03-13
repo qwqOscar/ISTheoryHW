@@ -83,8 +83,9 @@ void my_packet_handler(
      *   so it needs to add two bytes result.
      *   There is udp_header_length(bytes)
      */
-    udp_header_length = (((*(udp_header + 4)) & 0xFF) << 8) | (((*(udp_header + 5)) & 0xFF));
-    printf("UDP header length in bytes: %d\n", udp_header_length);
+    int udp_body_length = (((*(udp_header + 4)) & 0xFF) << 8) | (((*(udp_header + 5)) & 0xFF));
+    udp_header_length = 8;
+    printf("UDP length in bytes: %d\n", udp_header_length);
 	
 
     unsigned short udp_src_port = (((*(udp_header)) & 0xFF) << 8) | (((*(udp_header + 1)) & 0xFF));

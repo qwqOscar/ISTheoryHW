@@ -92,8 +92,8 @@ void my_packet_handler(
 	if((*(unsigned short *)udp_header) == 1701 || *(unsigned short *)(udp_header + 2) == 1701)
 		printf("  port == 1701!\n");
 	else{
-        printf("  udp_src_port==%d", int(udp_src_port));
-        printf("  udp_dst_port==%d\n", int(udp_dst_port));
+        printf("  udp_src_port==%d", (int)(udp_src_port));
+        printf("  udp_dst_port==%d\n", (int)(udp_dst_port));
     }
 	
     // l2tp

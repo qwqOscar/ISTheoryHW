@@ -85,7 +85,12 @@ void my_packet_handler(
      */
     udp_header_length = (((*(udp_header + 4)) & 0xFF) << 8) | (((*(udp_header + 5)) & 0xFF));
     printf("UDP header length in bytes: %d\n", udp_header_length);
-
+	
+	if(*(unsigned short)udp_header == 1701 or *(unsigned short)(udp_header + 2) == 1701)
+		printf("port == 1701!\n");
+	else
+		return;
+	
     // l2tp
     l2tp_header = packet + ethernet_header_length + ip_header_length + udp_header_length;
     /*

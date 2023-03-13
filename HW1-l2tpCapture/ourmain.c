@@ -109,7 +109,7 @@ void my_packet_handler(
     l2tp_priority = (*(l2tp_header)) & 0x01;
     l2tp_version = (*(l2tp_header + 1)) & 0x0F;
     if (l2tp_version == 0x02)
-        printf("版本号：2\n");
+        printf("\n版本号：2\n");
     else 
         printf("版本号错误\n");
     
@@ -150,7 +150,7 @@ void my_packet_handler(
     l2tp_session_id = (((*(l2tp_header + l2tp_session_id_bias)) & 0xFF) << 8)
         | ((*(l2tp_header + l2tp_session_id_bias + 1)) & 0xFF);
     if (l2tp_tunnel_id == 0 || l2tp_session_id == 0) {
-        printf("Tunnel id 或 Session id 无效.");
+        printf("Tunnel id 或 Session id 无效.\n");
         return;
     }
     else {

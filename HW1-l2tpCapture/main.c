@@ -23,25 +23,20 @@
  *   even Layer 8 protocol: HTTP.
  */
 void my_packet_handler(
-    u_char *args,
-    const struct pcap_pkthdr *header,
-    const u_char *packet
+    u_char* args,
+    const struct pcap_pkthdr* header,
+    const u_char* packet
 )
 {
-    struct ether_header *eth_header;
-    eth_header = (struct ether_header *) packet;
-    if (ntohs(eth_header->ether_type) != ETHERTYPE_IP) {
-        printf("\nNot an IP packet. Skipping...\n\n");
-        return;
-    }
+    struct ether_header* eth_header;
+    eth_header = (struct ether_header*)packet;
+    
 
-    printf("\nTotal packet available: %d bytes\n", header->caplen);
-    printf("Expected packet size: %d bytes\n", header->len);
 
-    const u_char *ip_header;
-    const u_char *udp_header;
-    const u_char *l2tp_header;
-    const u_char *payload;
+    const u_char* ip_header;
+    const u_char* udp_header;
+    const u_char* l2tp_header;
+    const u_char* payload;
 
     const int ethernet_header_length = 14; // ethernet header length is always 14 bytes
     int ip_header_length;
@@ -68,14 +63,11 @@ void my_packet_handler(
      *   or 480 bits = 60 bytes.
      */
     ip_header_length = ip_header_length * 4;
-    printf("IP header length (IHL) in bytes: %d\n", ip_header_length);
+   
 
     // udp
     u_char protocol = *(ip_header + 9);
-    if (protocol != IPPROTO_UDP) {
-        printf("Not a UDP packet. Skipping...\n\n");
-        return;
-    }
+    
 
     udp_header = packet + ethernet_header_length + ip_header_length;
     /*
@@ -85,18 +77,8 @@ void my_packet_handler(
      */
     int udp_body_length = (((*(udp_header + 4)) & 0xFF) << 8) | (((*(udp_header + 5)) & 0xFF));
     udp_header_length = 8;
-    printf("UDP length in bytes: %d\n", udp_header_length);
-	
 
-    unsigned short udp_src_port = (((*(udp_header)) & 0xFF) << 8) | (((*(udp_header + 1)) & 0xFF));
-    unsigned short udp_dst_port = (((*(udp_header + 2)) & 0xFF) << 8) | (((*(udp_header + 3)) & 0xFF));
-	if(udp_src_port == 1701 || udp_dst_port == 1701)
-		printf("  port == 1701!\n");
-	else{
-        printf("  udp_src_port==%d", (int)(udp_src_port));
-        printf("  udp_dst_port==%d\n", (int)(udp_dst_port));
-    }
-	
+
     // l2tp
     l2tp_header = packet + ethernet_header_length + ip_header_length + udp_header_length;
     /*
@@ -127,31 +109,24 @@ void my_packet_handler(
     l2tp_priority = (*(l2tp_header)) & 0x01;
     l2tp_version = (*(l2tp_header + 1)) & 0x0F;
     if (l2tp_version == 0x02)
-        printf("Version: L2TP Ver.2\n");
-    else {
-        printf("L2TP Version %d\n,l2tp_version");
-        return;
-    }
+        printf("\n版本号：2\n");
+    else 
+        printf("版本号错误\n");
+    
     if (l2tp_type)
-        printf("Type: l2tp_type is: %d, L2TP carry control message.\n", l2tp_type);
+        printf("这是一条控制信息\n");
     else
-        printf("Type: l2tp_type is: %d, L2TP carry data message.\n", l2tp_type);
-    if (l2tp_len_field)
-        printf("Length: bit given %d.\n", l2tp_len_field);
-    else
-        printf("Length: not given, L is %d.\n", l2tp_len_field);
-    if (l2tp_sequence_field)
-        printf("Sequence: set to %d, Ns Nr present.\n", l2tp_sequence_field);
-    else
-        printf("Sequence: not given, S is %d.\n", l2tp_sequence_field);
+        printf("这是一条数据信息\n");
+   
+
     if (l2tp_offset_field)
-        printf("Offset: set to %d, Offset size present.\n", l2tp_offset_field);
+        printf("偏移域存在\n");
     else
-        printf("Offset: not given, O is %d.\n", l2tp_offset_field);
+        printf("偏移域不存在\n");
     if (l2tp_priority)
-        printf("Priority: set to %d.\n", l2tp_priority);
+        printf("优先位设置为 %d.\n", l2tp_priority);
     else
-        printf("Priority: not given, P is %d.\n", l2tp_priority);
+        printf("优先位未设置\n");
 
     // l2tp header 2-3 byte
     int l2tp_total_length;
@@ -160,10 +135,10 @@ void my_packet_handler(
     if (l2tp_total_length_bias) {
         l2tp_total_length = (l2tp_len_field) ?
             (((*(l2tp_header + l2tp_total_length_bias)) & 0xFF) << 8) | ((*(l2tp_header + l2tp_total_length_bias + 1)) & 0xFF) : 0;
-        printf("L2TP length: l2tp datagram total length is %d byte.\n", l2tp_total_length);
+        printf("长度域存在，l2tp数据总长度为 %d byte.\n", l2tp_total_length);
     }
     else
-        printf("L2TP length: not set.\n");
+        printf("长度域不存在\n");
 
     // l2tp header 4~7 byte
     int l2tp_tunnel_id, l2tp_session_id;
@@ -171,11 +146,11 @@ void my_packet_handler(
     l2tp_tunnel_id_bias = (l2tp_len_field) ? 4 : 2; // 4 or 2(without Length)
     l2tp_session_id_bias = l2tp_tunnel_id_bias + 2;
     l2tp_tunnel_id = (((*(l2tp_header + l2tp_tunnel_id_bias)) & 0xFF) << 8)
-                    | ((*(l2tp_header + l2tp_tunnel_id_bias + 1)) & 0xFF);
+        | ((*(l2tp_header + l2tp_tunnel_id_bias + 1)) & 0xFF);
     l2tp_session_id = (((*(l2tp_header + l2tp_session_id_bias)) & 0xFF) << 8)
-                    | ((*(l2tp_header + l2tp_session_id_bias + 1)) & 0xFF);
+        | ((*(l2tp_header + l2tp_session_id_bias + 1)) & 0xFF);
     if (l2tp_tunnel_id == 0 || l2tp_session_id == 0) {
-        printf("Tunnel id or Session id eq 0.");
+        printf("Tunnel id 或 Session id 无效.\n");
         return;
     }
     else {
@@ -187,51 +162,53 @@ void my_packet_handler(
     int l2tp_Ns, l2tp_Nr;
     int l2tp_Ns_bias, l2tp_Nr_bias;
     l2tp_Ns_bias = (l2tp_sequence_field) ?
-                    ((l2tp_len_field) ? 8 : 6) : 0;
+        ((l2tp_len_field) ? 8 : 6) : 0;
     l2tp_Nr_bias = (l2tp_sequence_field) ? l2tp_Ns_bias + 2 : 0;
     if (l2tp_Ns_bias || l2tp_Nr_bias) {
         l2tp_Ns = (((*(l2tp_header + l2tp_Ns_bias)) & 0xFF) << 8)
-                | ((*(l2tp_header + l2tp_Ns_bias + 1)) & 0xFF);
+            | ((*(l2tp_header + l2tp_Ns_bias + 1)) & 0xFF);
         l2tp_Nr = (((*(l2tp_header + l2tp_Nr_bias)) & 0xFF) << 8)
-                | ((*(l2tp_header + l2tp_Nr_bias + 1)) &0xFF);
+            | ((*(l2tp_header + l2tp_Nr_bias + 1)) & 0xFF);
+        if (l2tp_sequence_field)
+            printf("序列域存在,Ns,Nr存在\n");
         printf("Ns(next sequence number): %d.\n", l2tp_Ns);
         printf("Nr(next control message received): %d.\n", l2tp_Nr);
     }
     else
-        printf("Ns and Nr not present.\n");
+        printf("序列域不存在\n");
 
     // l2tp header 12-13
     int l2tp_offset;
     int l2tp_offset_bias;
     l2tp_offset_bias = (l2tp_offset_field) ? (
         l2tp_len_field ? (l2tp_sequence_field ? 12 : 8) : (l2tp_sequence_field ? 10 : 6)
-    ) : 0;
+        ) : 0;
     l2tp_offset = (((*(l2tp_header + l2tp_offset_bias)) & 0xFF) << 8)
-            | ((*(l2tp_header + l2tp_offset_bias + 1)) & 0xFF);
+        | ((*(l2tp_header + l2tp_offset_bias + 1)) & 0xFF);
     if (l2tp_offset_bias)
-        printf("Offset size(octets past L2TP header): %d.\n", l2tp_offset);
+        printf("偏移域存在，偏移长度为(有效数据距l2tp头的字节数): %d.\n", l2tp_offset);
     else
-        printf("Offset size not present.\n");
+        printf("偏移域不存在\n");
 
     l2tp_header_length = 1 + l2tp_len_field * 2 + 4 + l2tp_sequence_field * 4 + l2tp_offset_field * 2;
-    printf("L2TP header length: %d\n", l2tp_header_length);
+    printf("L2TP头长度: %d\n", l2tp_header_length);
 
     int total_headers_size = ethernet_header_length + ip_header_length + udp_header_length + l2tp_header_length;
-    printf("size of header caplen: %d bytes\n", header->caplen);
-    printf("Size of all headers combined: %d bytes\n", total_headers_size);
+    printf("网络包总长度: %d bytes\n", header->caplen);
+   
     payload_length = header->caplen -
         (ethernet_header_length + ip_header_length + udp_header_length + l2tp_header_length);
-    printf("Payload size: %d bytes\n", payload_length);
+    printf("总载荷长度: %d bytes\n", payload_length);
     payload = packet + total_headers_size;
-    printf("Memory address where payload begins: %p\n\n", payload);
-
+    
+    printf("******载荷数据显示******\n\n");
     /* Print payload in ASCII */
     if (payload_length > 0) {
-        const u_char *temp_pointer = payload;
+        const u_char* temp_pointer = payload;
         u_char temp_array[16] = { 0 };
         int byte_count = 0;
         while (byte_count < payload_length) {
-            if ( byte_count % 16 == 0 && byte_count) {
+            if (byte_count % 16 == 0 && byte_count) {
                 printf(" |        ");
                 unsigned int index;
                 for (index = 0; index < 16; ++index) {
@@ -339,17 +316,17 @@ int activate_error_process(int activate_result) {
     return activate_result;
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
 
     // dev name
-    char *device = argv[1];
+    char* device = argv[1];
     char error_buffer[PCAP_ERRBUF_SIZE];
-    pcap_t *handle;
+    pcap_t* handle;
     int snapshot_length = 1024;
     int total_packet_count = 20000;
     int inet_ntoa_result;
     int activate_result;
-    u_char *my_arguments = NULL;
+    u_char* my_arguments = NULL;
 
     struct bpf_program filter;
     // L2TP over udp port 1701
